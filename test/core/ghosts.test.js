@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   pickDirection, chaseTarget, frightenedDirection,
   createScheduler, stepScheduler, modeOf, mulberry32,
-} from '../src/ghosts.js'
+} from '../../src/core/ghosts.js'
 
 const ROOM = ['#####', '#   #', '#   #', '#   #', '#####']
 

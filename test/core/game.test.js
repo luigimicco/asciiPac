@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createGame, tick, fruitFor, FRIGHT_S } from '../src/game.js'
-import { MAZE, isWalkable } from '../src/maze.js'
+import { createGame, tick, fruitFor, FRIGHT_S } from '../../src/core/game.js'
+import { MAZE, isWalkable } from '../../src/core/maze.js'
 
 // Partita già in corso, con Pac-Man in (x,y) rivolto a `dir` e già pronto a muoversi.
 function playing(x, y, dir) {

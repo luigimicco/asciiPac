@@ -1,8 +1,8 @@
-import { createGame, tick } from './src/game.js'
-import { render } from './src/render.js'
-import { renderTitle, renderGameOver } from './src/screens.js'
-import { setupInput } from './src/input.js'
-import { HEIGHT, WIDTH } from './src/maze.js'
+import { createGame, tick } from './core/game.js'
+import { render } from './ui/render.js'
+import { renderTitle, renderGameOver } from './ui/screens.js'
+import { setupInput } from './ui/input.js'
+import { HEIGHT, WIDTH } from './core/maze.js'
 
 const DT = 1 / 60
 

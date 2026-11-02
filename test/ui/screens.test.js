@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { renderTitle, renderGameOver, animationRow } from '../src/screens.js'
+import { renderTitle, renderGameOver, animationRow } from '../../src/ui/screens.js'
 
 const plainLines = (frame) => frame.replace(/\x1b\[[0-9;]*[mKHJ]/g, '').split('\n')
 

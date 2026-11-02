@@ -2,9 +2,10 @@
   "name": "asciipac",
   "version": "1.0.0",
   "description": "Pac-Man ASCII per terminale, Node.js senza dipendenze",
+  "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "node pacman.js",
+    "start": "node src/main.js",
     "test": "node --test"
   }
 }

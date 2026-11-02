@@ -1,7 +1,7 @@
 // Schermate di avvio e game over: solo ASCII, stringhe pure (nessun I/O).
 import { GHOST_BG, PAC_OPEN, paint, frame } from './render.js'
-import { FRUITS } from './game.js'
-import { WIDTH } from './maze.js'
+import { FRUITS } from '../core/game.js'
+import { WIDTH } from '../core/maze.js'
 
 const COLS = WIDTH * 2 // larghezza del campo di gioco in caratteri
 

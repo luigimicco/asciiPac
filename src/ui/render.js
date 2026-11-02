@@ -1,5 +1,5 @@
-import { tileAt } from './maze.js'
-import { DYING_S, fruitFor } from './game.js'
+import { tileAt } from '../core/maze.js'
+import { DYING_S, fruitFor } from '../core/game.js'
 
 // Da stato a stringa frame. Celle a doppia larghezza (i caratteri del terminale sono alti ~2x la larghezza).
 export const ESC = '\x1b['

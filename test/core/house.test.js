@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createHouse, houseOnPellet, houseRelease, houseResetAfterDeath } from '../src/house.js'
+import { createHouse, houseOnPellet, houseRelease, houseResetAfterDeath } from '../../src/core/house.js'
 
 const eat = (h, inside, n) => { for (let i = 0; i < n; i++) houseOnPellet(h, inside) }
 
