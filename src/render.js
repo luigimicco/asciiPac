@@ -2,10 +2,12 @@ import { tileAt } from './maze.js'
 import { DYING_S, fruitFor } from './game.js'
 
 // Da stato a stringa frame. Celle a doppia larghezza (i caratteri del terminale sono alti ~2x la larghezza).
-const ESC = '\x1b['
-const paint = (code, text) => `${ESC}${code}m${text}${ESC}0m`
+export const ESC = '\x1b['
+export const paint = (code, text) => `${ESC}${code}m${text}${ESC}0m`
+// Frame: cursore in alto, ogni riga ripulita a fine riga, e tutto ciò che sta sotto cancellato.
+export const frame = (lines) => `${ESC}H${lines.map((l) => l + `${ESC}K`).join('\n')}${ESC}J`
 // Fantasmi: blocco con colore di sfondo ANSI (indipendente dal font) e due "occhi".
-const GHOST_BG = { blinky: 196, pinky: 213, inky: 51, clyde: 208 }
+export const GHOST_BG = { blinky: 196, pinky: 213, inky: 51, clyde: 208 }
 
 function ghostCell(s, g) {
   if (g.mode === 'eyes') return paint('97', 'oo')
@@ -17,7 +19,7 @@ function ghostCell(s, g) {
 }
 
 // Pac-Man: bocca verso la direzione di marcia, si apre e si chiude a ogni tile ('O' = chiusa).
-const PAC_OPEN = { right: 'C', left: '>', up: 'U', down: 'n' }
+export const PAC_OPEN = { right: 'C', left: '>', up: 'U', down: 'n' }
 const DYING_FRAMES = ['O ', 'o ', '. ', "' ", '* ', '  ']
 
 function pacCell(s) {
@@ -29,7 +31,7 @@ function pacCell(s) {
   return paint('93', ((pac.x + pac.y) % 2 === 0 ? PAC_OPEN[pac.dir] : 'O') + ' ')
 }
 
-// Muri a contorno con caratteri box-drawing (bit N=1, E=2, S=4, O=8). TEXTPAC_ASCII=1 per il vecchio '##'.
+// Muri a contorno con caratteri box-drawing (bit N=1, E=2, S=4, O=8). ASCIIPAC_ASCII=1 per il vecchio '##'.
 const BOX = [' ', '║', '═', '╚', '║', '║', '╔', '╠', '═', '╝', '═', '╩', '╗', '╣', '╦', '╬']
 const wallCache = new Map()
 
@@ -58,7 +60,7 @@ function wallGlyphs(maze) {
 const MESSAGES = { ready: 'PRONTI!', over: 'GAME OVER' }
 
 export function render(s) {
-  const walls = process.env.TEXTPAC_ASCII ? null : wallGlyphs(s.maze)
+  const walls = process.env.ASCIIPAC_ASCII ? null : wallGlyphs(s.maze)
   const cells = s.maze.map((row, y) => [...row].map((t, x) => {
     if (t === '#') return walls ? walls[y][x] : paint('34', '##')
     if (t === '-') return paint('95', '--')
@@ -83,5 +85,5 @@ export function render(s) {
     ...cells.map((r) => r.join('')),
     MESSAGES[s.phase] ?? '',
   ]
-  return `${ESC}H${lines.map((l) => l + `${ESC}K`).join('\n')}`
+  return frame(lines)
 }

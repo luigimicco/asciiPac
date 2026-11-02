@@ -1,5 +1,5 @@
 {
-  "name": "textpac",
+  "name": "asciipac",
   "version": "1.0.0",
   "description": "Pac-Man ASCII per terminale, Node.js senza dipendenze",
   "type": "module",

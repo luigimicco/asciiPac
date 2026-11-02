@@ -1,13 +1,13 @@
-# TextPac
+# asciiPac
 
 Pac-Man ASCII per terminale, Node.js (testato con v24), nessuna dipendenza.
 
 ```
-npm start      # gioca (frecce o WASD, q o Ctrl+C per uscire)
+npm start      # schermata di avvio, poi INVIO/SPAZIO per giocare (frecce o WASD, q o Ctrl+C per uscire)
 npm test       # node:test
 ```
 
-Serve un terminale con supporto ANSI (Windows Terminal, o conhost su Windows 10+).
+Serve un terminale con supporto ANSI (Windows Terminal, o conhost su Windows 10+). Con `ASCIIPAC_ASCII=1` i muri diventano `##` (per font senza caratteri di disegno a riquadro).
 
 ## Fonti e approssimazioni
 - Regole dei fantasmi (target, scatter/chase, frightened, casa, velocità livello 1): *The Pac-Man Dossier* di J. Pittman, <https://pacman.holenet.info/>. Fonte non ufficiale, di un solo autore, non verificata indipendentemente.
