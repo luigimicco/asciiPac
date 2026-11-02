@@ -1,17 +1,32 @@
 import { tileAt } from './maze.js'
+import { DYING_S, fruitFor } from './game.js'
 
 // Da stato a stringa frame. Celle a doppia larghezza (i caratteri del terminale sono alti ~2x la larghezza).
 const ESC = '\x1b['
 const paint = (code, text) => `${ESC}${code}m${text}${ESC}0m`
-const GHOST_COLOR = { blinky: '38;5;196', pinky: '38;5;213', inky: '38;5;51', clyde: '38;5;208' }
+// Fantasmi: blocco con colore di sfondo ANSI (indipendente dal font) e due "occhi".
+const GHOST_BG = { blinky: 196, pinky: 213, inky: 51, clyde: 208 }
 
 function ghostCell(s, g) {
-  if (g.mode === 'eyes') return paint('97', 'e ')
+  if (g.mode === 'eyes') return paint('97', 'oo')
   if (g.scared) {
     const flash = s.frightT < 2 && Math.floor(s.frightT / 0.2) % 2 === 0 // ~5 lampeggi finali
-    return paint(flash ? '97' : '38;5;21', 'G ')
+    return paint(flash ? '38;5;21;48;5;255' : '97;48;5;21', 'vv')
   }
-  return paint(GHOST_COLOR[g.name], 'G ')
+  return paint(`30;48;5;${GHOST_BG[g.name]}`, 'oo')
+}
+
+// Pac-Man: bocca verso la direzione di marcia, si apre e si chiude a ogni tile ('O' = chiusa).
+const PAC_OPEN = { right: 'C', left: '>', up: 'U', down: 'n' }
+const DYING_FRAMES = ['O ', 'o ', '. ', "' ", '* ', '  ']
+
+function pacCell(s) {
+  const { pac } = s
+  if (s.phase === 'dying') {
+    const p = 1 - s.phaseT / DYING_S // 0 -> 1 durante l'animazione
+    return paint('93', DYING_FRAMES[Math.min(DYING_FRAMES.length - 1, Math.floor(p * DYING_FRAMES.length))])
+  }
+  return paint('93', ((pac.x + pac.y) % 2 === 0 ? PAC_OPEN[pac.dir] : 'O') + ' ')
 }
 
 // Muri a contorno con caratteri box-drawing (bit N=1, E=2, S=4, O=8). TEXTPAC_ASCII=1 per il vecchio '##'.
@@ -40,7 +55,7 @@ function wallGlyphs(maze) {
   return glyphs
 }
 
-const MESSAGES ={ ready: 'PRONTI!', over: 'GAME OVER', won: 'HAI VINTO!' }
+const MESSAGES = { ready: 'PRONTI!', over: 'GAME OVER' }
 
 export function render(s) {
   const walls = process.env.TEXTPAC_ASCII ? null : wallGlyphs(s.maze)
@@ -49,14 +64,22 @@ export function render(s) {
     if (t === '-') return paint('95', '--')
     const f = s.food[y][x]
     if (f === '.') return '. '
-    if (f === 'o') return paint('97', 'O ')
+    if (f === 'o') return paint('1;97', '()') // power pill: occupa tutta la cella, si legge come un cerchio
     return '  '
   }))
-  for (const g of s.ghosts) cells[g.y][g.x] = ghostCell(s, g)
-  cells[s.pac.y][s.pac.x] = paint('93', s.phase === 'dying' ? 'x ' : 'C ')
+  const fruit = fruitFor(s.level)
+  if (s.fruit) cells[s.fruit.y][s.fruit.x] = paint(`38;5;${fruit.color}`, fruit.glyph)
+  if (s.phase !== 'dying') for (const g of s.ghosts) cells[g.y][g.x] = ghostCell(s, g) // nascosti alla morte
+  cells[s.pac.y][s.pac.x] = pacCell(s)
+  for (const p of s.popups) { // il testo (max 4 caratteri) occupa due celle
+    const x = Math.min(p.x, s.maze[0].length - 2)
+    const text = p.text.padEnd(4)
+    cells[p.y][x] = paint('96', text.slice(0, 2))
+    cells[p.y][x + 1] = paint('96', text.slice(2))
+  }
 
   const lines = [
-    `PUNTI ${String(s.score).padStart(6)}   VITE ${s.lives}`,
+    `PUNTI ${String(s.score).padStart(6)}  VITE ${s.lives}  LIV ${s.level}  BONUS ${fruit.glyph} ${fruit.name} ${fruit.points}`,
     ...cells.map((r) => r.join('')),
     MESSAGES[s.phase] ?? '',
   ]

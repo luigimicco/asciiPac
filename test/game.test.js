@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createGame, tick, FRIGHT_S } from '../src/game.js'
+import { createGame, tick, fruitFor, FRIGHT_S } from '../src/game.js'
 import { MAZE, isWalkable } from '../src/maze.js'
 
 // Partita già in corso, con Pac-Man in (x,y) rivolto a `dir` e già pronto a muoversi.
@@ -42,6 +42,18 @@ test('fantasma spaventato mangiato: +200 e diventa occhi', () => {
   tick(s)
   assert.equal(blinky(s).mode, 'eyes')
   assert.equal(s.score, 200)
+  assert.deepEqual(s.popups.map((p) => p.text), ['200'])
+  for (let i = 0; i < 61; i++) tick(s) // il popup dura 1 s
+  assert.equal(s.popups.length, 0)
+})
+
+test('catena di fantasmi: 200, 400, 800, 1600', () => {
+  const s = playing(1, 1, 'right')
+  s.food[1][2] = ' '
+  s.chain = 2
+  Object.assign(blinky(s), { x: 2, y: 1, px: 2, py: 1, scared: true })
+  tick(s)
+  assert.equal(s.score, 800)
 })
 
 test('collisione con fantasma normale: perde una vita', () => {
@@ -53,13 +65,51 @@ test('collisione con fantasma normale: perde una vita', () => {
   assert.equal(s.lives, 2)
 })
 
-test('ultima pillola: vittoria', () => {
+test('ultima pillola: nuovo livello con labirinto pieno e contatori azzerati', () => {
   const s = playing(1, 1, 'right')
   clearFood(s)
   s.food[1][2] = '.'
   s.pellets = 1
+  s.eaten = 100
+  s.house.personal.inky = 12
   tick(s)
-  assert.equal(s.phase, 'won')
+  assert.equal(s.level, 2)
+  assert.equal(s.phase, 'ready')
+  assert.ok(s.pellets > 200 && s.food[1][2] === '.')
+  assert.equal(s.eaten, 0)
+  assert.equal(s.house.personal.inky, 0)
+})
+
+test('bonus per livello (tabella del Dossier)', () => {
+  const names = [1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 50].map((l) => fruitFor(l).name)
+  assert.deepEqual(names, ['ciliegie', 'fragola', 'pesca', 'pesca', 'mela', 'mela', 'uva', 'galaxian', 'campana', 'chiave', 'chiave'])
+})
+
+test('bonus: compare alla 70a e alla 170a pillola, non prima né dopo', () => {
+  for (const [eaten, expected] of [[68, false], [69, true], [70, false], [169, true]]) {
+    const s = playing(1, 1, 'right')
+    s.eaten = eaten
+    tick(s)
+    assert.equal(s.fruit !== null, expected, `eaten=${eaten}`)
+  }
+})
+
+test('bonus: mangiato vale i punti del livello, sparisce dopo ~9,5 s', () => {
+  const s = playing(1, 1, 'right')
+  s.food[1][2] = ' '
+  s.level = 2
+  s.fruit = { x: 2, y: 1, t: 9.5 }
+  tick(s)
+  assert.equal(s.score, 300)
+  assert.equal(s.fruit, null)
+  assert.deepEqual(s.popups.map((p) => p.text), ['300'])
+
+  const t = playing(1, 5, 'left')
+  t.fruit = { x: 13, y: 17, t: 1 } // scadenza accorciata: i fantasmi non fanno in tempo a raggiungere Pac-Man
+  for (let i = 0; i < 59; i++) tick(t)
+  assert.ok(t.fruit)
+  for (let i = 0; i < 3; i++) tick(t)
+  assert.equal(t.fruit, null)
 })
 
 test('tunnel: Pac-Man esce a sinistra e rientra a destra', () => {

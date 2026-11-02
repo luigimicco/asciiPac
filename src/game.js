@@ -10,7 +10,8 @@ import { createHouse, houseOnPellet, houseRelease, houseResetAfterDeath } from '
 export const MAX_TPS = 9.47
 export const FRIGHT_S = 6
 const READY_S = 2
-const DYING_S = 1.5
+export const DYING_S = 1.5
+const POPUP_S = 1
 const SEED = 12345
 const HOME_EXIT = { x: 13, y: 11 } // tile sopra la porta
 const HOME_CENTER_Y = 14
@@ -22,13 +23,33 @@ const START = {
 // Frazioni di MAX_TPS. leaving/eyes sono stime mie (la fonte non le dà nel riepilogo usato).
 const SPEED = { pac: 0.8, pacFright: 0.9, ghost: 0.75, ghostFright: 0.5, tunnel: 0.4, leaving: 0.5, eyes: 1.5 }
 
+// Bonus per livello e punti: Pac-Man Dossier, tabella A.1 (fonte non ufficiale).
+export const FRUITS = [
+  { name: 'ciliegie', points: 100, glyph: '%%', color: 196 },
+  { name: 'fragola', points: 300, glyph: '&&', color: 204 },
+  { name: 'pesca', points: 500, glyph: '{}', color: 215 },
+  { name: 'mela', points: 700, glyph: '@@', color: 160 },
+  { name: 'uva', points: 1000, glyph: '$$', color: 129 },
+  { name: 'galaxian', points: 2000, glyph: '^^', color: 51 },
+  { name: 'campana', points: 3000, glyph: 'bb', color: 226 },
+  { name: 'chiave', points: 5000, glyph: 'o=', color: 15 },
+]
+const FRUIT_BY_LEVEL = [0, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7] // dal livello 13 in poi: chiave
+export const fruitFor = (level) => FRUITS[FRUIT_BY_LEVEL[Math.min(level, 13) - 1]]
+const FRUIT_AT = [70, 170] // pillole mangiate alla comparsa (due volte a livello)
+const FRUIT_TILE = { x: 13, y: 17 } // sotto la casa dei fantasmi (tile scelto da me: la fonte non lo dà)
+const FRUIT_S = 9.5 // la fonte dà 9-10 s, variabile: uso il valore medio fisso
+
+const countFood = (food) => food.flat().filter((c) => c !== ' ').length
+
 export function createGame({ faithfulOverflowBug = true, lives = 3 } = {}) {
   const food = createFood()
   const s = {
     maze: MAZE, food, opts: { faithfulOverflowBug },
-    pellets: food.flat().filter((c) => c !== ' ').length,
+    pellets: countFood(food),
     score: 0, lives, phase: 'ready', phaseT: READY_S,
     house: createHouse(),
+    level: 1, eaten: 0, fruit: null, // eaten = pillole mangiate nel livello (fa comparire i bonus)
   }
   resetActors(s)
   return s
@@ -45,6 +66,7 @@ function resetActors(s) {
   s.frightT = 0
   s.chain = 0
   s.rng = mulberry32(SEED)
+  s.popups = [] // punti mostrati dove è stato mangiato un fantasma
 }
 
 function ghostSpeed(s, g) {
@@ -106,7 +128,9 @@ function collide(s) {
     g.scared = false
     g.mode = 'eyes'
     g.entering = false
-    s.score += 200 * 2 ** s.chain++ // 200, 400, 800, 1600
+    const pts = 200 * 2 ** s.chain++ // 200, 400, 800, 1600
+    s.score += pts
+    s.popups.push({ x: g.x, y: g.y, text: String(pts), t: POPUP_S })
   }
 }
 
@@ -119,6 +143,7 @@ function eat(s) {
   food[pac.y][pac.x] = ' '
   s.pellets--
   houseOnPellet(s.house, insideHouse(s))
+  if (FRUIT_AT.includes(++s.eaten)) s.fruit = { ...FRUIT_TILE, t: FRUIT_S }
   if (c === '.') {
     s.score += 10
     pac.stall = 1 // 1 frame di pausa ≈ 71% di velocità mangiando
@@ -130,7 +155,29 @@ function eat(s) {
     for (const g of s.ghosts) if (g.mode !== 'eyes') g.scared = true
     reverseGhosts(s)
   }
-  if (s.pellets === 0) s.phase = 'won'
+  if (s.pellets === 0) nextLevel(s)
+}
+
+// Labirinto ripulito: nuovo livello. Difficoltà invariata (tabella livelli successivi non implementata), cambia il bonus.
+function nextLevel(s) {
+  s.level++
+  s.food = createFood()
+  s.pellets = countFood(s.food)
+  s.eaten = 0
+  s.fruit = null
+  s.house = createHouse() // contatori personali a zero a inizio livello
+  resetActors(s)
+  s.phase = 'ready'
+  s.phaseT = READY_S
+}
+
+function eatFruit(s) {
+  const { fruit, pac } = s
+  if (!fruit || fruit.x !== pac.x || fruit.y !== pac.y) return
+  const points = fruitFor(s.level).points
+  s.score += points
+  s.popups.push({ x: fruit.x, y: fruit.y, text: String(points), t: POPUP_S })
+  s.fruit = null
 }
 
 function movePac(s) {
@@ -143,6 +190,7 @@ function movePac(s) {
   pac.x = wrapX(pac.x + d.dx)
   pac.y += d.dy
   eat(s)
+  eatFruit(s)
   return true
 }
 
@@ -160,6 +208,10 @@ export function tick(s, input = {}, dt = 1 / 60) {
     s.phaseT = READY_S
     return
   }
+
+  for (const p of s.popups) p.t -= dt
+  s.popups = s.popups.filter((p) => p.t > 0)
+  if (s.fruit && (s.fruit.t -= dt) <= 0) s.fruit = null
 
   // Timer: lo scheduler è in pausa durante frightened.
   if (s.frightT > 0) {

@@ -1,10 +1,20 @@
 import { createGame, tick } from './src/game.js'
 import { render } from './src/render.js'
 import { setupInput } from './src/input.js'
+import { HEIGHT, WIDTH } from './src/maze.js'
 
 const DT = 1 / 60
 const state = createGame()
 const input = { want: null }
+
+// Il frame è HEIGHT+2 righe per WIDTH*2 colonne: se il terminale è più piccolo lo schermo scorre e si sporca.
+const needRows = HEIGHT + 2
+const needCols = WIDTH * 2
+const { rows = needRows, columns = needCols } = process.stdout
+if (rows < needRows || columns < needCols) {
+  console.error(`Terminale troppo piccolo: servono almeno ${needCols}x${needRows} (ora ${columns}x${rows}). Ingrandisci la finestra.`)
+  process.exit(1)
+}
 
 setupInput((dir) => { input.want = dir }, () => process.exit(0))
 process.stdout.write('\x1b[2J\x1b[?25l')
@@ -23,7 +33,7 @@ const loop = setInterval(() => {
     acc -= DT
   }
   process.stdout.write(render(state))
-  if (state.phase === 'over' || state.phase === 'won') {
+  if (state.phase === 'over') {
     clearInterval(loop)
     process.exit(0)
   }
